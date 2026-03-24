@@ -1,116 +1,103 @@
-// ----------------------------
-// Library Management Script
-// ----------------------------
 
-// Utility: Get all books from localStorage
-function getBooks() {
-    return JSON.parse(localStorage.getItem('books')) || [];
+
+const STORE_KEY = 'library_v1';
+let store = JSON.parse(localStorage.getItem(STORE_KEY)) || {books:[], issued:[]};
+
+function saveStore(){ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
+
+const navButtons = document.querySelectorAll('.nav button');
+const viewTitle = document.getElementById('view-title');
+const viewContainer = document.getElementById('view-container');
+const templates = {};
+document.querySelectorAll('template').forEach(t=>templates[t.id.replace('tpl-','')]=t);
+
+function setActiveView(view){
+  navButtons.forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+  viewTitle.textContent = view.charAt(0).toUpperCase() + view.slice(1);
+  renderView(view);
 }
 
-// ----------------------------
-// Add Book
-// ----------------------------
-function addBook() {
-    const id = parseInt(document.getElementById('addID').value);
-    const name = document.getElementById('addName').value.trim();
-    const msg = document.getElementById('addMsg');
+navButtons.forEach(b=>b.addEventListener('click', ()=> setActiveView(b.dataset.view)));
 
-    if (!id || !name) {
-        msg.innerText = "⚠ Please enter both ID and Name!";
-        msg.style.color = "red";
-        return;
+function renderView(view){
+  viewContainer.innerHTML = '';
+  const tpl = templates[view];
+  if(!tpl) return viewContainer.textContent='Not available';
+  viewContainer.appendChild(tpl.content.cloneNode(true));
+  if(view==='dashboard') renderDashboard();
+  if(view==='add') bindAdd();
+  if(view==='display') bindDisplay();
+  if(view==='search') bindSearch();
+  if(view==='issue') bindIssue();
+}
+
+// Dashboard Stats
+function renderDashboard(){
+  document.getElementById('stat-total').textContent = store.books.length;
+  document.getElementById('stat-issued').textContent = store.issued.length;
+  document.getElementById('stat-available').textContent = store.books.length - store.issued.length;
+}
+
+// ADD BOOK
+function bindAdd(){
+  const form = document.getElementById('addForm');
+  const resetBtn = document.getElementById('resetAdd');
+  form.addEventListener('submit', e=>{
+    e.preventDefault();
+    const id=form.id.value.trim(), name=form.name.value.trim();
+    if(store.books.find(b=>b.id===id)){ alert('Book ID already exists'); return; }
+    store.books.push({id,name});
+    saveStore(); alert('Book added'); form.reset(); renderDashboard();
+  });
+  resetBtn.addEventListener('click', ()=>form.reset());
+}
+
+// DISPLAY BOOKS
+function bindDisplay(){
+  const tbody = document.querySelector('#booksTable tbody');
+  tbody.innerHTML='';
+  store.books.forEach(b=>{
+    const tr=document.createElement('tr');
+    const status = store.issued.includes(b.id)?'Issued':'Available';
+    tr.innerHTML=`<td>${b.id}</td><td>${b.name}</td><td>${status}</td><td class="actions"></td>`;
+    const actions = tr.querySelector('.actions');
+    if(!store.issued.includes(b.id)){
+      const issueBtn=document.createElement('button'); issueBtn.className='btn primary'; issueBtn.textContent='Issue';
+      issueBtn.addEventListener('click', ()=>{ store.issued.push(b.id); saveStore(); bindDisplay(); renderDashboard(); });
+      actions.appendChild(issueBtn);
     }
-
-    let books = getBooks();
-
-    // Check if ID already exists
-    if (books.find(b => b.id === id)) {
-        msg.innerText = "⚠ Book ID already exists!";
-        msg.style.color = "red";
-        return;
-    }
-
-    books.push({ id, name });
-    localStorage.setItem('books', JSON.stringify(books));
-
-    msg.innerText = "✅ Book Added Successfully!";
-    msg.style.color = "green";
-
-    document.getElementById('addID').value = '';
-    document.getElementById('addName').value = '';
+    const delBtn=document.createElement('button'); delBtn.className='btn ghost'; delBtn.textContent='Delete';
+    delBtn.addEventListener('click', ()=>{ if(confirm('Delete book?')){ store.books=store.books.filter(x=>x.id!==b.id); store.issued=store.issued.filter(x=>x!==b.id); saveStore(); bindDisplay(); renderDashboard(); } });
+    actions.appendChild(delBtn);
+    tbody.appendChild(tr);
+  });
 }
 
-// ----------------------------
-// Display All Books
-// ----------------------------
-function displayBooks() {
-    const bookList = document.getElementById('bookList');
-    if (!bookList) return; // In case the page doesn't have a display section
-
-    const books = getBooks();
-    bookList.innerHTML = '';
-
-    if (books.length === 0) {
-        bookList.innerHTML = '<p>No books available!</p>';
-        return;
-    }
-
-    books.forEach(book => {
-        const div = document.createElement('div');
-        div.className = 'book-card';
-        div.innerHTML = `<strong>ID:</strong> ${book.id}<br><strong>Name:</strong> ${book.name}`;
-        bookList.appendChild(div);
-    });
+// SEARCH BOOK
+function bindSearch(){
+  const form = document.getElementById('searchForm');
+  const result = document.getElementById('searchResult');
+  form.addEventListener('submit', e=>{
+    e.preventDefault();
+    const id=form.id.value.trim();
+    const book=store.books.find(b=>b.id===id);
+    if(book) result.innerHTML=`✅ Found: ${book.name} (${store.issued.includes(book.id)?'Issued':'Available'})`;
+    else result.innerHTML='❌ Not Found';
+  });
 }
 
-// ----------------------------
-// Search Book by ID
-// ----------------------------
-function searchBook() {
-    const id = parseInt(document.getElementById('searchID').value);
-    const result = document.getElementById('searchResult');
-    const books = getBooks();
-
-    const book = books.find(b => b.id === id);
-
-    if (book) {
-        result.innerText = `✅ Book Found!\nID: ${book.id}, Name: ${book.name}`;
-        result.style.color = "green";
-    } else {
-        result.innerText = "❌ Book Not Found!";
-        result.style.color = "red";
-    }
+// ISSUE BOOK
+function bindIssue(){
+  const form=document.getElementById('issueForm');
+  const result=document.getElementById('issueResult');
+  form.addEventListener('submit', e=>{
+    e.preventDefault();
+    const id=form.id.value.trim();
+    if(!store.books.find(b=>b.id===id)){ result.innerHTML='❌ Book Not Found'; return; }
+    if(store.issued.includes(id)){ result.innerHTML='⚠ Already Issued'; return; }
+    store.issued.push(id); saveStore();
+    result.innerHTML='✅ Book Issued Successfully'; renderDashboard(); bindDisplay();
+  });
 }
 
-// ----------------------------
-// Issue Book by ID
-// ----------------------------
-function issueBook() {
-    const id = parseInt(document.getElementById('issueID').value);
-    const result = document.getElementById('issueResult');
-    let books = getBooks();
-
-    const index = books.findIndex(b => b.id === id);
-
-    if (index !== -1) {
-        result.innerText = `✅ Book Issued Successfully!\nID: ${books[index].id}, Name: ${books[index].name}`;
-        result.style.color = "green";
-
-        // Optional: Remove book after issuing
-        // books.splice(index, 1);
-        // localStorage.setItem('books', JSON.stringify(books));
-
-    } else {
-        result.innerText = "❌ Book Not Found!";
-        result.style.color = "red";
-    }
-}
-
-// ----------------------------
-// Optional: Clear All Books (for testing)
-// ----------------------------
-function clearLibrary() {
-    localStorage.removeItem('books');
-    alert("Library cleared!");
-    displayBooks();
-}
+setActiveView('dashboard');

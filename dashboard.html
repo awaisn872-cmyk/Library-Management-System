@@ -1,39 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Library Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Library Management System</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="dashboard-container">
-        <header>
-            <h1>📚 Library Management Dashboard</h1>
-            <p>Welcome! Manage your library efficiently from this dashboard. Add books, display all books, search or issue books with ease.</p>
-        </header>
-
-        <div class="dashboard-grid">
-            <div class="card" onclick="location.href='add.html'">
-                <h2>Add Book</h2>
-                <p>Register new books in the library.</p>
-            </div>
-
-            <div class="card" onclick="location.href='display.html'">
-                <h2>Display Books</h2>
-                <p>View all books currently available.</p>
-            </div>
-
-            <div class="card" onclick="location.href='search.html'">
-                <h2>Search Book</h2>
-                <p>Find a book by its ID.</p>
-            </div>
-
-            <div class="card" onclick="location.href='issue.html'">
-                <h2>Issue Book</h2>
-                <p>Issue a book to a user.</p>
-            </div>
-        </div>
+<div class="app">
+  <aside class="sidebar card">
+    <div class="logo">MyLibrary</div>
+    <nav class="nav" style="margin-top:14px">
+      <button data-view="dashboard" class="active">Dashboard</button>
+      <button data-view="add">Add Book</button>
+      <button data-view="display">Display Books</button>
+      <button data-view="search">Search Book</button>
+      <button data-view="issue">Issue Book</button>
+    </nav>
+    
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <h2 id="view-title">Dashboard</h2>
     </div>
+    <div id="view-container"></div>
+  </main>
+</div>
+
+<!-- Templates -->
+<template id="tpl-dashboard">
+  <div class="card">
+    <h3>Quick Stats</h3>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-top:12px">
+      <div class="card" style="text-align:center"><div class="muted">Total Books</div><div id="stat-total" style="font-size:22px;font-weight:700">0</div></div>
+      <div class="card" style="text-align:center"><div class="muted">Issued Books</div><div id="stat-issued" style="font-size:22px;font-weight:700">0</div></div>
+      <div class="card" style="text-align:center"><div class="muted">Available Books</div><div id="stat-available" style="font-size:22px;font-weight:700">0</div></div>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-add">
+  <div class="card">
+    <h3>Add Book</h3>
+    <form id="addForm" class="row" style="margin-top:10px">
+      <div>
+        <label>Book ID</label>
+        <input name="id" required>
+      </div>
+      <div>
+        <label>Book Name</label>
+        <input name="name" required>
+      </div>
+      <div style="grid-column:1/-1; margin-top:8px">
+        <button class="btn primary" type="submit">Add Book</button>
+        <button id="resetAdd" class="btn ghost" type="button">Reset</button>
+      </div>
+    </form>
+  </div>
+</template>
+
+<template id="tpl-display">
+  <div class="card">
+    <h3>All Books</h3>
+    <div class="list">
+      <table id="booksTable"><thead><tr><th>ID</th><th>Name</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-search">
+  <div class="card">
+    <h3>Search Book</h3>
+    <form id="searchForm" class="row" style="margin-top:10px">
+      <div><label>Book ID</label><input name="id" required></div>
+      <div style="grid-column:1/-1; margin-top:8px"><button class="btn primary" type="submit">Search</button></div>
+    </form>
+    <div id="searchResult" style="margin-top:12px"></div>
+  </div>
+</template>
+
+<template id="tpl-issue">
+  <div class="card">
+    <h3>Issue Book</h3>
+    <form id="issueForm" class="row" style="margin-top:10px">
+      <div><label>Book ID</label><input name="id" required></div>
+      <div style="grid-column:1/-1; margin-top:8px"><button class="btn primary" type="submit">Issue</button></div>
+    </form>
+    <div id="issueResult" style="margin-top:12px"></div>
+  </div>
+</template>
+
+<script src="script.js"></script>
 </body>
 </html>
